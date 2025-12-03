@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>秀变工区作业管控措施查看器</title>
+    <style>
+        :root {
+            --primary-color: #1e88e5;
+            --secondary-color: #42a5f5;
+            --accent-color: #e53935;
+            --light-color: #e3f2fd;
+            --dark-color: #1565c0;
+            --text-color: #37474f;
+            --border-color: #bbdefb;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
+            color: white;
+            padding: 25px 0;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2.4em;
+            font-weight: 600;
+        }
+        
+        .header-subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin: 10px 0;
+        }
+        
+        .update-time {
+            font-size: 0.95em;
+            opacity: 0.8;
+            background-color: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 25px;
+            margin-top: 20px;
+        }
+        
+        .panel {
+            flex: 1;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+        }
+        
+        .panel-header {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+        }
+        
+        .panel-content {
+            padding: 20px;
+        }
+        
+        .textarea-container {
+            width: 100%;
+            min-height: 400px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Microsoft YaHei', sans-serif;
+            font-size: 14px;
+            line-height: 1.8;
+            resize: vertical;
+            box-sizing: border-box;
+            background-color: white;
+            overflow-y: auto;
+        }
+        
+        .accident-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: var(--light-color);
+            border-radius: 8px;
+        }
+        
+        .accident-tag {
+            background: linear-gradient(to right, var(--secondary-color), var(--primary-color));
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+        }
+        
+        .accident-tag:hover {
+            background: linear-gradient(to right, #2874a6, #2980b9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .accident-tag.active {
+            background: linear-gradient(to right, var(--accent-color), #c0392b);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #7f8c8d;
+            font-size: 14px;
+            padding: 20px 0;
+            border-top: 1px solid #eee;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>秀变工区作业管控措施查看器</h1>
+            <div class="header-subtitle">选择事故类型，获取主要安全风险和管控措施</div>
+            <div class="update-time">管控措施更新时间：2025年12月3日</div>
+        </header>
+        
+        <div class="accident-tags" id="accidentTags">
+            <!-- 事故类型标签将通过JavaScript动态生成 -->
+        </div>
+        
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">主要的安全风险</div>
+                <div class="panel-content">
+                    <textarea class="textarea-container" id="hazardsTextarea" readonly></textarea>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">管控措施</div>
+                <div class="panel-content">
+                    <textarea class="textarea-container" id="measuresTextarea" readonly></textarea>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2025 安全管理系统 | 安全生产，人人有责</p>
+        </footer>
+    </div>
+
+    <script>
+        // 完整数据库 - 包含11种事故类型
+        const safetyData = {
+            "触电": {
+                hazards: [
+                    "检修设备未停电、未隔离、未接地",
+                    "有可能送电到检修地点的设备未挂牌",
+                    "与运行设备的安全距离不够",
+                    "临时用电不规范使用"
+                ],
+                measures: [
+                    {
+                        category: "一、涉及低压设备检修",
+                        items: [
+                            "不得擅自打开电源开关柜，不得乱动电器设备及线路",
+                            "进行电气设备检维修等工作前，断开电源开关，拆除设备电源线，并用万用表验明无电后方可开展作业",
+                            "操作带电设备设施必须穿绝缘鞋、戴绝缘手套，严禁用湿手去触摸电源开关以及其它电气设备"
+                        ]
+                    },
+                    {
+                        category: "二、涉及临时用电",
+                        items: [
+                            "作业现场用绝缘支架支撑临时用电线路，正确铺设电线电路，检查电线绝缘等是否完好，检修动力电源箱应有完善的标识，其支路开关都应加装漏电保护器并应在使用前检查和试验，连接电动机械及电动工具的电气回路应单独装设开关或插座，并装设漏电保护器，做到'一机一闸一保护'",
+                            "使用的焊机等设备设施外壳应可靠接地"
+                        ]
+                    },
+                    {
+                        category: "三、涉及高压带电设备/线路附近工作",
+                        items: [
+                            "将断路器、线路转检修，在指定位置装设接地线一组",
+                            "在断路器及隔离开关的操作机构处悬挂'禁止合闸，有人工作！'标示牌",
+                            "确认工作地点，用警示围栏将工作地点与相邻间隔隔离，在入口处悬挂'从此进出'标示牌，在工作地点悬挂'在此工作'标示牌",
+                            "在变电站户外搬运梯子等长物，应放倒后两人搬运",
+                            "工作时，与带电设备确保安全距离（220kV≥3米，110kV≥1.5米，35kV≥1米，10kV≥0.7米）"
+                        ]
+                    },
+                    {
+                        category: "四、涉及随车吊",
+                        items: [
+                            "吊臂及物件与带电部分的安全距离符合要求（110kV≥4米；35kV≥4米；10kV≥2米）"
+                        ]
+                    },
+                    {
+                        category: "五、涉及有限空间",
+                        items: [
+                            "有限空间移动照明应使用36V以下的电压，金属容器内、潮湿环境下应使用12V的安全电压"
+                        ]
+                    }
+                ]
+            },
+            "机械伤害": {
+                hazards: [
+                    "磨光机无防护",
+                    "不正确使用",
+                    "断路器合闸弹簧未释能"
+                ],
+                measures: [
+                    {
+                        category: "一、通用措施",
+                        items: [
+                            "断开转动或传动设备设施电源开关，验电确认无电后挂上'正在检修，禁止合闸'标示牌，禁止人员误启动",
+                            "不能停电开展检维修时，应在转动或传动区域设置防护栏杆，确保作业人员与转动或传动部位保持0.5m安全距离",
+                            "运转中的设备设施严禁进行调整及检修，严禁用手触摸其转动、传动等运动部位",
+                            "当使用的机械设备设施发生异常情况时，必须立即停机",
+                            "调整、检修及中断运行时，必须将其电源断开",
+                            "操作人员着装不应有可能被转动机械绞住的部分，必须穿好工作服，衣服、袖口应扣好、扎紧，长发必须盘在帽内"
+                        ]
+                    },
+                    {
+                        category: "二、涉及角磨机、磨光机",
+                        items: [
+                            "作业前检查角磨机、切割机的防护罩、外壳完好，空载试运行无误后方可使用",
+                            "使用角磨机、切割机时均匀使力，严禁正对他人和自己",
+                            "当机械发生异常情况时，必须立即停机（锂电池电动工器具需拔下电池）",
+                            "检修、调整或中断使用时，必须将其电源断开，并用专用工具进行",
+                            "使用电动工器具进行打磨时，作业人员需戴好护目镜，并不得使用线手套"
+                        ]
+                    },
+                    {
+                        category: "三、涉及断路器机构箱",
+                        items: [
+                            "工作前，对断路器合闸弹簧释放能量（断开储能电源空开，对断路器进行机械合闸一次再分一次）"
+                        ]
+                    }
+                ]
+            },
+            "物体打击": {
+                hazards: [
+                    "搬运材料不正确操作",
+                    "高处作业使用工具放置不当",
+                    "备品无固定坠落"
+                ],
+                measures: [
+                    {
+                        category: "一、通用措施",
+                        items: [
+                            "搬运材料、工器具时必须稳拿稳放，作业时使用工具必须平稳用力，防止工具脱手导致物体打击",
+                            "作业时正确穿戴好工作服、安全帽、手套等劳保用品"
+                        ]
+                    },
+                    {
+                        category: "二、涉及高处作业",
+                        items: [
+                            "工作时使用工具袋，暂时不用的工具装入袋内",
+                            "工器具、材料、备件使用绳索平稳上下传送，严禁抛掷",
+                            "作业区域设置警戒线，禁止其他人员在作业点下方区域走动和逗留"
+                        ]
+                    }
+                ]
+            },
+            "中毒和窒息": {
+                hazards: [
+                    "有限空间内通风不良",
+                    "可能存在有毒有害气体",
+                    "通风设备异常"
+                ],
+                measures: [
+ {
+                        category: "一、有限空间作业",
+                        items: [
+                            "有限空间作业必须遵守“先通风、再检测、后作业”原则，进入前30min 内使用便携式气体检测仪检测有限空间内气体含量，氧气浓度在 19.5%~23.5%范围内，并保持良好通风；作业中至少每 2h 检测一次有害气体含量，对可能释放有害物质的有限空间应连续监测；作业中断时间超过 30min 必须重新检测",
+                    "作业人员随身携带便携式气体检测仪，实时监测作业现场气体含量，如发现检测仪报警，立即撤出作业现场",
+                    "使用轴流式通风机持续向作业区域底部送风",
+                    "监护人员在有限空间外全程持续监护，如现场环境负责需配备对讲机，同作业人员保持联系",
+                    "现场配备正压式呼吸器、全身式安全带、安全绳等应急装备，发生异常情况应正确穿戴应急装备后方可开展救援"
+                        ]
+                    },
+                    {
+                        category: "二、断路器补气作业",
+                        items: [
+                            "进行SF6气体加注前检查管路及接口处完好正常，补气时应配合专用工具（减压阀）控制加气压力缓慢进行，作业人员必须站在上风口进行",
+                            "加注过程中如遇大量泄漏，应紧急关闭SF6气瓶阀门"
+                        ]
+                    }
+                ]
+            },
+            "高处坠落": {
+                hazards: [
+                    "高处作业时安全带不合格、不规范使用",
+                    "登高梯子使用不当"
+                ],
+                measures: [
+                    "检查安全带各部件完整，扣件齐全，外观完好，使用过程中高挂低用，并确保安全带挂点可靠；移动时，交替使用双钩，作业人员不得失去保护；",
+                    "梯子使用前确认各组件完好、牢固，安放要平稳，确保梯子与地面的夹角在65度至75度之间，梯子应有人扶持，以防失稳坠落。"
+                ]
+            },
+            "车辆伤害": {
+                hazards: [
+                    "驾驶员不正当操作",
+                    "乘车人员未系安全带"
+                ],
+                measures: [
+                    "驾驶机动车由专/兼职驾驶员驾驶，开车前检查车辆状况，不得超载行驶；",
+                    "车辆在厂区内行驶速度不得超过5km/h，弯道减速鸣笛；",
+                    "乘坐人员必须系好安全带，头、手不得伸出车外。"
+                ]
+            },
+            "火灾": {
+                hazards: [
+                    "电焊作业现场有易燃物",
+                    "与可燃物没有进行有效隔离"
+                ],
+                measures: [
+                    "作业前清除电焊作业现场易燃易爆物品",
+                    "确认焊接位置符合焊接条件，现场配备2具干粉灭火器",
+                    "作业结束后，检查现场无遗留火种、无复燃风险后，人员方可离开"
+                ]
+            },
+            "容器爆炸": {
+                hazards: [
+                    "氧气乙炔瓶摆放位置不当",
+                    "安全防护设施失效"
+                ],
+                measures: [
+                    "氧气、乙炔瓶间隔5米，离动火距离10米",
+                    "氧气乙炔瓶固定牢固，乙炔瓶必须立放，不得放置阳光下暴晒，必须放在阴凉处",
+                    "检查确认氧气、乙炔瓶防回火装置、压力表、气管完好，有防振圈"
+                ]
+            },
+            "灼烫": {
+                hazards: [
+                    "焊渣飞溅烫伤"
+                ],
+                measures: [
+                    "电焊操作人员正确使用防护用品",
+                    "必须穿好工作服，袖口、裤脚应扣好、扎紧"
+                ]
+            },
+            "起重伤害": {
+                hazards: [
+                    "吊车脚臂支撑不当",
+                    "吊物时操作不当",
+                    "起重作业不规范"
+                ],
+                measures: [
+                    "从事起吊作业人员必须取得相应证书",
+                    "吊车停放位置符合要求，支撑地面牢实可靠，支撑部位合理",
+                    "起吊物件时，听从指挥，应用完好无损的钢丝绳，吊点位于物件重心，并绑扎牢固",
+                    "起吊下方不允许站人，由一人统一下达启吊命令，严禁多人指挥",
+                    "起重司机必须听从指挥人员的指挥，指挥信号不明时严禁操作",
+                    "吊装过程中任何人发出紧急停车信号时，司机必须立即停车"
+                ]
+            }
+        };
+
+        // 初始化页面时显示所有事故类型标签
+        function initAccidentTags() {
+            const accidentTagsContainer = document.getElementById('accidentTags');
+            const accidentTypes = Object.keys(safetyData);
+            
+            accidentTypes.forEach(type => {
+                const tag = document.createElement('button');
+                tag.className = 'accident-tag';
+                tag.textContent = type;
+                tag.onclick = function() {
+                    // 移除所有active类
+                    document.querySelectorAll('.accident-tag').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    // 添加active类到当前点击的元素
+                    tag.classList.add('active');
+                    generateContent(type);
+                };
+                accidentTagsContainer.appendChild(tag);
+            });
+        }
+
+        function generateContent(workType) {
+            const hazardsTextarea = document.getElementById('hazardsTextarea');
+            const measuresTextarea = document.getElementById('measuresTextarea');
+            
+            if (!workType) {
+                alert('请选择事故类型');
+                return;
+            }
+            
+            // 清空之前的内容
+            hazardsTextarea.value = '';
+            measuresTextarea.value = '';
+            
+            // 查找匹配的作业类型
+            const matchedType = Object.keys(safetyData).find(type => 
+                type.includes(workType) || workType.includes(type)
+            );
+            
+            if (matchedType) {
+                const data = safetyData[matchedType];
+                
+                // 填充安全风险
+                let hazardsText = '';
+                data.hazards.forEach((hazard, index) => {
+                    hazardsText += (index + 1) + '. ' + hazard + '\n';
+                });
+                hazardsTextarea.value = hazardsText;
+                
+                // 填充管控措施
+                let measuresText = '';
+                
+                if (Array.isArray(data.measures[0]) || (data.measures[0] && data.measures[0].category)) {
+                    // 分类显示的措施
+                    data.measures.forEach(category => {
+                        measuresText += category.category + '\n';
+                        category.items.forEach((measure, index) => {
+                            measuresText += '(' + (index + 1) + ') ' + measure + '\n';
+                        });
+                        measuresText += '\n';
+                    });
+                } else {
+                    // 普通显示方式
+                    data.measures.forEach((measure, index) => {
+                        measuresText += '(' + (index + 1) + ') ' + measure + '\n';
+                    });
+                }
+                
+                measuresTextarea.value = measuresText;
+            } else {
+                alert('未找到该事故类型的相关数据。请尝试以下类型：\n' + Object.keys(safetyData).join('、'));
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initAccidentTags();
+            // 默认选择第一个事故类型
+            const firstType = Object.keys(safetyData)[0];
+            if (firstType) {
+                document.querySelector('.accident-tag').classList.add('active');
+                generateContent(firstType);
+            }
+        });
+    </script>
+</body>
+</html>
